@@ -76,6 +76,19 @@ hermes mcp add indonesia-official \
 
 If BPS is enabled, add `BPS_API_KEY` to Hermes's secret environment rather than Markdown or command history.
 
+## Mission Control dashboard
+
+Run the responsive evidence dashboard on the LAN:
+
+```bash
+.venv/bin/pip install -e '.[dashboard]'
+.venv/bin/python -m dashboard --host 0.0.0.0 --port 8010
+```
+
+Open `http://localhost:8010`. Official issuer, announcement, and filing data is
+kept separate from clearly labelled in-memory demo workflow state. The dashboard
+does not display unlicensed market prices or investment recommendations.
+
 ## Development
 
 ```bash

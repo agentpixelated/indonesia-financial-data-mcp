@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0B132B">
+  <title>IDX Mission Control</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#situation-room">Skip to situation room</a>
+
+  <header class="command-header">
+    <div class="brand-lockup">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i></span>
+      <div>
+        <p class="eyebrow">KTI // OFFICIAL INDONESIA DATA</p>
+        <h1>IDX MISSION CONTROL</h1>
+      </div>
+    </div>
+    <div class="header-actions">
+      <span class="mode-chip"><b>LIVE</b> OFFICIAL DATA</span>
+      <span class="mode-chip demo"><b>DEMO</b> SIMULATED OPERATIONS</span>
+      <button class="primary-action" id="create-mission" type="button"><span>+</span> New mission</button>
+    </div>
+  </header>
+
+  <section class="telemetry-rail" aria-label="Source health">
+    <div class="telemetry-title"><span class="pulse"></span> SOURCE TELEMETRY</div>
+    <div class="source-status" data-source="IDX"><span class="source-dot"></span><b>IDX</b><span id="idx-health">CHECKING</span><small id="idx-latency">—</small></div>
+    <div class="source-status" data-source="BPS"><span class="source-dot"></span><b>BPS</b><span id="bps-health">CHECKING</span><small>API</small></div>
+    <div class="source-status" data-source="KSEI"><span class="source-dot"></span><b>KSEI</b><span id="ksei-health">CHECKING</span><small id="ksei-latency">—</small></div>
+    <div class="sync-status">LAST CHECK <time id="last-check">—</time></div>
+  </section>
+
+  <main class="command-deck">
+    <aside class="left-stack" data-mobile-view="universe">
+      <section class="module universe-module">
+        <header class="module-header">
+          <div><span class="module-index">01</span><h2>UNIVERSE</h2></div>
+          <span class="module-meta">SELECT ISSUER</span>
+        </header>
+        <div id="watchlist-container" class="issuer-list" aria-live="polite"></div>
+      </section>
+
+      <section class="module mission-module" data-mobile-view="missions">
+        <header class="module-header">
+          <div><span class="module-index violet">02</span><h2>MISSION QUEUE</h2></div>
+          <span class="demo-flag">DEMO</span>
+        </header>
+        <div class="filter-bar" role="group" aria-label="Filter missions">
+          <button class="active" data-filter="ALL" type="button">ALL</button>
+          <button data-filter="ACTIVE" type="button">ACTIVE</button>
+          <button data-filter="PENDING" type="button">PENDING</button>
+          <button data-filter="COMPLETED" type="button">DONE</button>
+          <button data-filter="FAILED" type="button">FAILED</button>
+        </div>
+        <div id="mission-container" class="mission-list" aria-live="polite"></div>
+      </section>
+    </aside>
+
+    <section class="center-stack" data-mobile-view="dossier">
+      <section class="module situation-module" id="situation-room">
+        <header class="module-header wide">
+          <div><span class="module-index">03</span><h2>SITUATION ROOM</h2></div>
+          <div class="room-actions">
+            <span id="data-mode" class="verified-badge">OFFICIAL IDX</span>
+            <button class="text-action" id="open-evidence" type="button">Evidence vault <span>↗</span></button>
+          </div>
+        </header>
+
+        <div class="dossier-hero">
+          <div class="ticker-identity">
+            <div class="ticker-monogram" id="ticker-monogram">BC</div>
+            <div>
+              <div class="identity-line"><span id="selected-ticker">BBCA</span><span class="listing-badge" id="listing-board">MAIN BOARD</span></div>
+              <h3 id="company-name">Retrieving official issuer profile…</h3>
+              <p id="company-sector">IDX · official company profile</p>
+            </div>
+          </div>
+          <div class="evidence-score">
+            <div class="score-label">EVIDENCE CHANNELS</div>
+            <div class="score-value"><span id="evidence-channel-count">0</span><small>/3</small></div>
+            <div class="channel-bar"><i id="channel-progress"></i></div>
+            <div class="score-caption">Profile · announcements · filings</div>
+          </div>
+        </div>
+
+        <div class="dossier-grid">
+          <div class="brief-block">
+            <span class="data-label">BUSINESS ACTIVITY</span>
+            <p id="business-activity">Waiting for official IDX response.</p>
+          </div>
+          <div class="brief-block compact">
+            <span class="data-label">LISTED</span>
+            <strong id="listing-date">—</strong>
+          </div>
+          <div class="brief-block compact">
+            <span class="data-label">CONTROLLER</span>
+            <strong id="controller-name">—</strong>
+            <small id="controller-stake">—</small>
+          </div>
+          <div class="brief-block compact">
+            <span class="data-label">LEADERSHIP</span>
+            <strong id="leadership-count">—</strong>
+            <small>directors + commissioners</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="module intelligence-module">
+        <header class="module-header wide">
+          <div><span class="module-index orange">04</span><h2>OFFICIAL INTELLIGENCE</h2></div>
+          <div class="feed-tabs" role="tablist" aria-label="Official intelligence channel">
+            <button class="active" data-feed="announcements" type="button">Announcements</button>
+            <button data-feed="filings" type="button">Filings</button>
+          </div>
+        </header>
+        <div class="feed-disclosure"><span class="verified-badge">OFFICIAL ENDPOINT</span><p>Availability is reported per channel. No market prices or recommendations.</p></div>
+        <div id="feed-content" class="intelligence-feed" aria-live="polite"></div>
+      </section>
+    </section>
+
+    <aside class="right-stack" data-mobile-view="operations">
+      <section class="module operations-module">
+        <header class="module-header">
+          <div><span class="module-index violet">05</span><h2>AGENT OPERATIONS</h2></div>
+          <span class="demo-flag">DEMO</span>
+        </header>
+        <p class="module-notice">Workflow simulation only. It does not represent live autonomous execution.</p>
+        <div id="ops-content" class="ops-list" aria-live="polite"></div>
+      </section>
+
+      <section class="module command-log-module" data-mobile-view="log">
+        <header class="module-header">
+          <div><span class="module-index">06</span><h2>COMMAND LOG</h2></div>
+          <button class="icon-button" id="clear-local-log" type="button" aria-label="Clear local activity log">CLEAR</button>
+        </header>
+        <div id="log-container" class="command-log" aria-live="polite"></div>
+      </section>
+    </aside>
+  </main>
+
+  <aside class="evidence-drawer" id="evidence-drawer" aria-hidden="true" aria-labelledby="evidence-title">
+    <div class="drawer-scrim" data-close-drawer></div>
+    <div class="drawer-panel" role="dialog" aria-modal="true">
+      <header class="drawer-header">
+        <div><p class="eyebrow">VERIFIABLE SOURCE CHAIN</p><h2 id="evidence-title">EVIDENCE VAULT</h2></div>
+        <button class="close-button" type="button" data-close-drawer aria-label="Close evidence vault">×</button>
+      </header>
+      <div id="drawer-content" class="drawer-content"></div>
+    </div>
+  </aside>
+
+  <div class="modal" id="mission-modal" aria-hidden="true">
+    <div class="modal-scrim" data-close-modal></div>
+    <section class="mission-dialog" role="dialog" aria-modal="true" aria-labelledby="mission-title">
+      <header class="drawer-header">
+        <div><p class="eyebrow">DEMO WORKFLOW</p><h2 id="mission-title">CREATE RESEARCH MISSION</h2></div>
+        <button class="close-button" type="button" data-close-modal aria-label="Close mission form">×</button>
+      </header>
+      <form id="mission-form">
+        <label>Mission title<input id="mission-name" name="title" required maxlength="120" placeholder="Review BBCA FY2025 filing"></label>
+        <label>IDX ticker<input id="mission-ticker" name="ticker" pattern="[A-Za-z0-9]{4,8}" value="BBCA" required></label>
+        <p>This creates local in-memory demo state. It does not start an agent or alter official data.</p>
+        <button class="primary-action full" type="submit">Queue demo mission</button>
+      </form>
+    </section>
+  </div>
+
+  <nav class="mobile-nav" aria-label="Mobile command navigation">
+    <button class="active" data-mobile-tab="dossier" type="button"><span>03</span>Room</button>
+    <button data-mobile-tab="universe" type="button"><span>01</span>Universe</button>
+    <button data-mobile-tab="missions" type="button"><span>02</span>Missions</button>
+    <button data-mobile-tab="operations" type="button"><span>05</span>Ops</button>
+    <button data-mobile-tab="log" type="button"><span>06</span>Log</button>
+  </nav>
+
+  <div id="toast-region" class="toast-region" aria-live="polite"></div>
+  <script src="/static/app.js" defer></script>
+</body>
+</html>

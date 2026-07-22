@@ -18,16 +18,27 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+dashboard = [
+  "starlette>=0.47,<1",
+  "uvicorn>=0.34,<1",
+]
 dev = [
   "pytest>=8,<9",
   "pytest-asyncio>=0.23,<1",
+  "starlette>=0.47,<1",
+  "uvicorn>=0.34,<1",
 ]
 
 [project.scripts]
 indonesia-financial-data-mcp = "indonesia_data_mcp.server:main"
+indonesia-financial-dashboard = "dashboard:main"
 
 [tool.setuptools.packages.find]
-where = ["src"]
+where = ["src", "."]
+include = ["indonesia_data_mcp*", "dashboard*"]
+
+[tool.setuptools.package-data]
+dashboard = ["static/*.html", "static/*.css", "static/*.js"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
