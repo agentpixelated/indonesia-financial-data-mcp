@@ -39,6 +39,10 @@ async def _idx_financial_reports(**kwargs: Any) -> dict[str, Any]:
     return await _idx.financial_reports(**kwargs)
 
 
+async def _idx_filing_facts(**kwargs: Any) -> dict[str, Any]:
+    return await _idx.filing_facts(**kwargs)
+
+
 async def _bps_list_subjects(**kwargs: Any) -> dict[str, Any]:
     return await _bps.list_subjects(**kwargs)
 
@@ -92,6 +96,7 @@ TOOL_HANDLERS: dict[str, Callable[..., Awaitable[dict[str, Any]]]] = {
     "idx_company_profile": _idx_company_profile,
     "idx_company_announcements": _idx_company_announcements,
     "idx_financial_reports": _idx_financial_reports,
+    "idx_filing_facts": _idx_filing_facts,
     "bps_list_subjects": _bps_list_subjects,
     "bps_list_variables": _bps_list_variables,
     "bps_get_data": _bps_get_data,
@@ -153,6 +158,28 @@ TOOLS = [
                 "year": {"type": "integer", "minimum": 2000, "maximum": 2100},
                 "period": {"type": "string", "enum": ["TW1", "TW2", "TW3", "audit"], "default": "audit"},
                 "limit": {"type": "integer", "minimum": 1, "maximum": 500, "default": 100},
+                "offset": {"type": "integer", "minimum": 0, "default": 0},
+            },
+            ["ticker", "year"],
+        ),
+    ),
+    Tool(
+        name="idx_filing_facts",
+        description=(
+            "Query raw facts from an official IDX instance.zip XBRL filing, with contexts, units, "
+            "attachment SHA-256, and citations. Facts are not canonical normalization."
+        ),
+        inputSchema=_object(
+            {
+                "ticker": {"type": "string", "pattern": "^[A-Za-z0-9]{4,8}$"},
+                "year": {"type": "integer", "minimum": 2000, "maximum": 2100},
+                "period": {"type": "string", "enum": ["TW1", "TW2", "TW3", "audit"], "default": "audit"},
+                "concept": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Case-insensitive substring filter for the XBRL concept name or QName.",
+                },
+                "limit": {"type": "integer", "minimum": 1, "maximum": 5000, "default": 500},
                 "offset": {"type": "integer", "minimum": 0, "default": 0},
             },
             ["ticker", "year"],

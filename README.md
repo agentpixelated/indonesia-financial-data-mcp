@@ -2,7 +2,7 @@
 
 Citation-first MCP server for **official Indonesian financial data**. It does not use Yahoo Finance or yfinance.
 
-## v0.1 official sources
+## Official sources
 
 | Provider | Coverage | Access |
 |---|---|---|
@@ -37,6 +37,7 @@ Credential values are redacted from provenance URLs.
 - `idx_company_profile`
 - `idx_company_announcements`
 - `idx_financial_reports`
+- `idx_filing_facts`
 - `bps_list_subjects`
 - `bps_list_variables`
 - `bps_get_data`
@@ -81,7 +82,19 @@ If BPS is enabled, add `BPS_API_KEY` to Hermes's secret environment rather than 
 .venv/bin/pytest -q
 ```
 
-Tests use fixtures/mock transports. Live smoke tests are separate so upstream availability cannot make the deterministic suite flaky.
+Live tests are separate so upstream availability cannot make the deterministic suite flaky.
+
+### Query official XBRL facts
+
+`idx_filing_facts` resolves the requested IDX filing, downloads its official
+`instance.zip`, verifies the ZIP, calculates SHA-256, and exposes its raw XBRL
+facts with context periods, dimensions, units, decimals, and citations. Use the
+optional `concept` substring to keep responses small—for example, `Assets`,
+`ProfitLoss`, or `InterestIncome`.
+
+The tool deliberately preserves the filing's taxonomy and raw values. It does
+not claim canonical cross-company normalization: concept names can vary by
+issuer profile and taxonomy version.
 
 ## Scope and limitations
 
@@ -89,7 +102,9 @@ Tests use fixtures/mock transports. Live smoke tests are separate so upstream av
   normal IDX session and uses conservative pacing. If ordinary HTTP TLS is
   rejected, it retries with browser-compatible TLS via `curl_cffi`; it does not
   solve or bypass CAPTCHAs.
-- This MCP returns official source records and attachments. Parsing financial-statement XLSX/XBRL/PDF into normalized line items is the next layer, not fabricated in v0.1.
+- This MCP returns official source records and attachments. It can query raw
+  `instance.zip` XBRL facts, but canonical cross-company line-item
+  normalization remains a separate future layer.
 - OJK's public data portal and Bank Indonesia sources were investigated. Their browser-facing services require additional contract discovery and reliability work, so they are not falsely advertised as production-ready tools in v0.1.
 - Market-price data is not included: official IDX real-time/delayed market data is a licensed data product.
 

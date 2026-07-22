@@ -3,13 +3,16 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import re
 from datetime import datetime, timezone
+from pathlib import PurePosixPath
 from typing import Any, Awaitable, Callable
-from urllib.parse import urlencode, urljoin
+from urllib.parse import quote, urlencode, urljoin, urlsplit, urlunsplit
 
 import httpx
 
+from .filing import parse_instance_zip
 from .http import OfficialHTTPClient
 from .models import Provenance, envelope
 
@@ -20,15 +23,19 @@ class IDXClient:
     _TICKER_RE = re.compile(r"^[A-Z0-9]{4,8}$")
     _PERIODS = {"TW1", "TW2", "TW3", "AUDIT"}
 
+    MAX_ATTACHMENT_BYTES = 25 * 1024 * 1024
+
     def __init__(
         self,
         http: httpx.AsyncClient | None = None,
         browser_get_json: Callable[[str, dict[str, str]], Awaitable[Any]] | None = None,
+        browser_get_bytes: Callable[[str, dict[str, str], int], Awaitable[bytes]] | None = None,
     ) -> None:
         self.transport = OfficialHTTPClient(http, min_interval=0.75)
         self._session_ready = False
         self._browser_transport_required = False
         self._browser_get_json = browser_get_json or self._curl_cffi_get_json
+        self._browser_get_bytes = browser_get_bytes or self._curl_cffi_get_bytes
 
     @staticmethod
     async def _curl_cffi_get_json(url: str, headers: dict[str, str]) -> Any:
@@ -42,6 +49,26 @@ class IDXClient:
             response = session.get(url, headers=headers, timeout=45)
             response.raise_for_status()
             return response.json()
+
+        return await asyncio.to_thread(fetch)
+
+    @staticmethod
+    async def _curl_cffi_get_bytes(
+        url: str, headers: dict[str, str], max_bytes: int
+    ) -> bytes:
+        """Download an official attachment using browser-compatible TLS."""
+
+        def fetch() -> bytes:
+            from curl_cffi import requests
+
+            session = requests.Session(impersonate="chrome")
+            session.get("https://www.idx.co.id/", headers=headers, timeout=30)
+            response = session.get(url, headers=headers, timeout=60)
+            response.raise_for_status()
+            content = response.content
+            if len(content) > max_bytes:
+                raise RuntimeError("Official IDX attachment exceeds maximum size")
+            return content
 
         return await asyncio.to_thread(fetch)
 
@@ -298,4 +325,109 @@ class IDXClient:
             self._source(source_url),
             warnings=warnings,
             meta={"total": raw.get("ResultCount", len(reports))},
+        )
+
+    @staticmethod
+    def _official_attachment_url(url: str) -> str:
+        parts = urlsplit(url)
+        if parts.scheme != "https" or (parts.hostname or "").lower() != "www.idx.co.id":
+            raise ValueError("attachment must use an official IDX HTTPS URL")
+        if parts.username or parts.password or parts.port not in (None, 443):
+            raise ValueError("attachment must use an official IDX HTTPS URL")
+        encoded_path = quote(parts.path, safe="/%:@-._~!$&'()*+,;=")
+        return urlunsplit((parts.scheme, parts.netloc, encoded_path, parts.query, ""))
+
+    async def filing_facts(
+        self,
+        ticker: str,
+        year: int,
+        period: str = "audit",
+        *,
+        concept: str = "",
+        limit: int = 500,
+        offset: int = 0,
+    ) -> dict[str, Any]:
+        """Return raw, queryable facts from an official IDX XBRL instance."""
+
+        ticker = self._ticker(ticker)
+        period = self._period(period)
+        reports_result = await self.financial_reports(ticker, year, period)
+        reports = reports_result.get("data", [])
+        if not reports:
+            raise ValueError(f"No {ticker} {year} {period} report found")
+
+        report = reports[0]
+        candidates = [
+            attachment
+            for attachment in report.get("attachments", [])
+            if PurePosixPath(str(attachment.get("filename", ""))).name.lower()
+            == "instance.zip"
+        ]
+        if len(candidates) != 1:
+            raise ValueError("official filing must expose exactly one instance.zip attachment")
+        attachment = candidates[0]
+        download_url = self._official_attachment_url(str(attachment.get("download_url", "")))
+        headers = {
+            "Accept": "application/zip, application/octet-stream, */*",
+            "Referer": f"{self.BASE}/",
+        }
+        content = await self._browser_get_bytes(
+            download_url, headers, self.MAX_ATTACHMENT_BYTES
+        )
+        if len(content) > self.MAX_ATTACHMENT_BYTES:
+            raise RuntimeError("Official IDX attachment exceeds maximum size")
+
+        parsed = parse_instance_zip(
+            content, concept=concept, limit=limit, offset=offset
+        )
+        digest = hashlib.sha256(content).hexdigest()
+        attachment_result = {
+            **attachment,
+            "download_url": download_url,
+            "downloaded_size_bytes": len(content),
+            "sha256": digest,
+        }
+        data = {
+            "filing": {
+                "ticker": report.get("ticker"),
+                "name": report.get("name"),
+                "year": report.get("year"),
+                "period": report.get("period"),
+            },
+            "attachment": attachment_result,
+            "facts": parsed["facts"],
+        }
+        sources = [
+            Provenance(
+                provider=item.get("provider", "IDX"),
+                source_url=item.get("source_url", ""),
+                retrieved_at=item.get("retrieved_at", self._now()),
+                official=bool(item.get("official", True)),
+                source_format=item.get("source_format", "json"),
+                notes=item.get("notes"),
+            )
+            for item in reports_result.get("provenance", [])
+        ]
+        sources.append(
+            Provenance(
+                provider="IDX",
+                source_url=download_url,
+                retrieved_at=self._now(),
+                official=True,
+                source_format="xbrl_zip",
+                notes=f"SHA-256 {digest}",
+            )
+        )
+        return envelope(
+            data,
+            *sources,
+            warnings=[
+                "Raw XBRL facts preserve issuer taxonomy and are not canonical normalization; concept names may differ across issuers and taxonomy versions"
+            ],
+            meta={
+                "total": parsed["total"],
+                "offset": parsed["offset"],
+                "limit": parsed["limit"],
+                "concept_filter": concept,
+            },
         )

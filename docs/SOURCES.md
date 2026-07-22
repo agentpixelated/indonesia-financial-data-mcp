@@ -19,6 +19,13 @@ inline-XBRL ZIP attachments. The MCP does not manufacture statement values.
 Cloudflare can reject ordinary HTTP TLS fingerprints; in that case, the client
 uses `curl_cffi` with browser-compatible TLS and reports a warning.
 
+`idx_filing_facts` accepts only HTTPS attachments on `www.idx.co.id`, selects
+the filing's `instance.zip`, enforces compressed and uncompressed size limits,
+rejects unsafe ZIP paths and XML DTD/entities, and records the attachment's
+SHA-256. Returned facts retain their original QName, context, dimensions, unit,
+decimals, and raw value. They are queryable source facts—not canonical
+normalization across issuers or taxonomy versions.
+
 ## BPS
 
 Documentation: <https://webapi.bps.go.id/documentation/>

@@ -22,7 +22,7 @@ Select all discovered tools, then verify:
 hermes mcp test indonesia-official
 ```
 
-Hermes should discover 10 tools. Start a new Hermes session after registering
+Hermes should discover 11 tools. Start a new Hermes session after registering
 so the tool schemas are loaded into the session.
 
 For BPS, provide `BPS_API_KEY` through Hermes's scoped MCP environment or your

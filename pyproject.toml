@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "indonesia-financial-data-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "Citation-first MCP server for official Indonesian financial data"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -12,6 +12,7 @@ license = {text = "MIT"}
 authors = [{name = "agentpixelated"}]
 dependencies = [
   "curl_cffi>=0.7,<1",
+  "defusedxml>=0.7,<1",
   "httpx>=0.27,<1",
   "mcp>=1.9,<2",
 ]
