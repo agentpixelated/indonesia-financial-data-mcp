@@ -119,7 +119,7 @@ class TestMissionsEndpoint:
             [],
             {"title": 123, "ticker": "BMRI"},
             {"title": "Analyze", "ticker": "XX"},
-            {"title": "x" * 201, "ticker": "BMRI"},
+            {"title": "x" * 121, "ticker": "BMRI"},
         ),
     )
     def test_create_mission_rejects_invalid_payload(self, client, payload):
@@ -143,6 +143,15 @@ class TestMissionsEndpoint:
         resp = client.patch(
             f"/api/missions/{mid}/state",
             json={"state": "EXPLODED"},
+        )
+        assert resp.status_code == 400
+
+    @pytest.mark.parametrize("payload", ([], {"state": 123}))
+    def test_update_mission_rejects_invalid_payload(self, client, payload):
+        missions = client.get("/api/missions").json()
+        resp = client.patch(
+            f"/api/missions/{missions[0]['id']}/state",
+            json=payload,
         )
         assert resp.status_code == 400
 
@@ -222,6 +231,57 @@ class TestEvidenceEndpoint:
             channel["official"] for channel in data["channels"].values()
         )
 
+    @pytest.mark.parametrize(
+        "announcement_source_url",
+        (
+            "https://attacker.example/disclosure",
+            "https://bad@www.idx.co.id/disclosure",
+            "https://www.idx.co.id:444/disclosure",
+        ),
+    )
+    def test_evidence_degrades_when_provenance_is_missing_or_unofficial(
+        self, app, announcement_source_url
+    ):
+        from starlette.testclient import TestClient
+
+        async def company_profile(ticker):
+            return {"data": {"ticker": ticker}, "provenance": []}
+
+        async def announcements(ticker, limit):
+            return {
+                "data": [],
+                "provenance": [
+                    {
+                        "provider": "IDX",
+                        "official": True,
+                        "source_url": announcement_source_url,
+                    }
+                ],
+            }
+
+        async def financial_reports(**kwargs):
+            return {
+                "data": [],
+                "provenance": [
+                    {
+                        "provider": "IDX",
+                        "official": True,
+                        "source_url": "https://www.idx.co.id/primary/ListedCompany/GetFinancialReport",
+                    }
+                ],
+            }
+
+        app.state.idx.company_profile = company_profile
+        app.state.idx.announcements = announcements
+        app.state.idx.financial_reports = financial_reports
+        with TestClient(app) as client:
+            data = client.get("/api/evidence/BBCA?year=2025&period=audit").json()
+
+        assert data["official_only"] is False
+        assert data["channels"]["profile"]["official"] is False
+        assert data["channels"]["announcements"]["official"] is False
+        assert data["channels"]["filings"]["official"] is True
+
 
 # ── Agent operations (demo) ─────────────────────────────────────
 
@@ -265,7 +325,9 @@ class TestStaticServing:
         resp = client.get("/static/app.js")
         assert resp.status_code == 200
         assert "/api/evidence/" in resp.text
-        assert '["http:", "https:"].includes(url.protocol)' in resp.text
+        assert 'url.protocol === "https:" && url.hostname === "www.idx.co.id"' in resp.text
+        assert "url.username || url.password" in resp.text
+        assert 'url.port && url.port !== "443"' in resp.text
         assert 'href="${safeURL(' in resp.text
 
     def test_shell_has_operational_regions_and_demo_disclosure(self, client):

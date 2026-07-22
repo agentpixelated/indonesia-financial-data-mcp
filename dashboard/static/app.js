@@ -22,7 +22,9 @@ function escapeHTML(value) {
 function safeURL(value) {
   try {
     const url = new URL(String(value || ""), window.location.origin);
-    return ["http:", "https:"].includes(url.protocol) ? escapeHTML(url.href) : "#";
+    const officialIDX = url.protocol === "https:" && url.hostname === "www.idx.co.id";
+    const safeAuthority = !(url.username || url.password) && !(url.port && url.port !== "443");
+    return officialIDX && safeAuthority ? escapeHTML(url.href) : "#";
   } catch {
     return "#";
   }
