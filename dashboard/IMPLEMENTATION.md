@@ -1,14 +1,14 @@
-# IDX Mission Control
+# IDX Research Desk
 
 ## Product architecture
 
 The dashboard is a lightweight Starlette application layered on the existing official-data clients. It does not duplicate IDX retrieval or parsing.
 
-- `dashboard/app.py` — JSON API, demo mission state, graceful live-source envelopes
-- `dashboard/static/index.html` — semantic command-room shell
-- `dashboard/static/styles.css` — responsive KTI design system
-- `dashboard/static/app.js` — client state and interactions
-- `tests/test_dashboard.py` — API, validation, static-shell, and design-token contracts
+- `dashboard/app.py` — JSON API, local demonstration state, and live-source envelopes
+- `dashboard/static/index.html` — semantic institutional research workspace
+- `dashboard/static/styles.css` — responsive KTI design system and self-hosted Geist fonts
+- `dashboard/static/app.js` — client state and accessible interactions
+- `tests/test_dashboard.py` — API, validation, static-shell, provenance, and accessibility contracts
 
 ### Data boundary
 
@@ -18,27 +18,29 @@ Official evidence channels are fetched from `IDXClient`:
 - announcements and original attachments
 - financial-report records and original attachments
 
-`GET /api/evidence/{ticker}` combines those independent channels and preserves each provenance envelope. It explicitly does not provide market prices, recommendations, or canonical cross-company normalization.
+`GET /api/evidence/{ticker}` combines those independent channels and preserves each provenance envelope. A channel is marked official only when its provenance contract identifies IDX and passes the HTTPS `www.idx.co.id` authority checks.
 
-Mission queue and agent operations are in-memory demonstration state. Every such surface is visibly labelled `DEMO WORKFLOW` or `DEMO SIGNAL`.
+The issuer navigation is a local preset, not an official IDX dataset. Selecting an issuer loads the live IDX profile and disclosure channels. The research-task queue, processing queue, and audit log are in-memory demonstration state. These surfaces are explicitly marked `Demo` or `Simulated workflow`.
+
+The dashboard does not provide market prices, recommendations, portfolio results, or canonical cross-company normalization.
 
 ## KTI design system
 
 Authoritative tokens from the supplied KTI palette:
 
 - Midnight Navy `#0B132B` — application shell and headers
-- Electric Cyan `#00B8D4` — primary signal, focus, verified active state
-- Bitcoin Orange `#F7931A` — demo/pending attention
-- Future Violet `#6C63FF` — AI/agent workflow state
-- Soft Background `#F5F7FB` — high-contrast source telemetry
-- Pure White `#FFFFFF` — primary text on navy
+- Electric Cyan `#00B8D4` — official evidence and active controls
+- Bitcoin Orange `#F7931A` — simulated/demo states
+- Future Violet `#6C63FF` — sparing secondary accent
+- Soft Background `#F5F7FB` — workspace background
+- Pure White `#FFFFFF` — primary surfaces
 - Primary Ink `#171A21` — text on light surfaces
-- Secondary Navy `#16213E` — operational modules
+- Secondary Navy `#16213E` — supporting dark surfaces
 - Muted Gray `#5B6472` — metadata
 - Soft Border `#DDE5F0` — structure and separators
-- Pale Blue Gray `#D8E1EF` — secondary text on navy
+- Pale Blue Gray `#D8E1EF` — secondary structure
 
-The interface uses square aerospace-instrument geometry, fine rules, compact telemetry, a subtle command grid, and only meaningful status motion. Reduced-motion preferences are respected.
+The interface uses flat institutional surfaces, fine separators, tabular metadata, and restrained state transitions. It has no gradients, glows, pulse effects, or fake telemetry. Geist Sans and Geist Mono are self-hosted under `dashboard/static/fonts/`, with the OFL license packaged alongside them. Reduced-motion preferences are respected.
 
 ## Run
 
@@ -52,17 +54,18 @@ Open `http://localhost:8010`.
 ## Verified interactions
 
 - issuer selection refreshes official evidence
-- mission state filters
-- announcement/filing channel switch
-- evidence/provenance drawer
-- create demo mission modal (`Ctrl/Cmd+M`)
-- mobile command navigation
+- research-task state filters
+- announcement/filing tabs, including Arrow Left/Right and Home/End keyboard control
+- evidence/provenance drawer with focus trapping, Escape dismissal, and focus restoration
+- create-demo-task modal with the same dialog focus behavior (`Ctrl/Cmd+M`)
+- mobile workspace navigation with programmatic current-state exposure
 - source-health refresh every 60 seconds
-- accessible keyboard focus and Escape-to-close
+- responsive layouts at desktop, tablet, and mobile widths
 
 ## Boundaries
 
+- Official attachment links must use HTTPS, exact host `www.idx.co.id`, no credentials, and only the default/443 port.
 - No licensed official market prices are displayed.
 - No buy/sell recommendation is produced.
 - Filing attachments are shown as official records, not normalized peer metrics.
-- Mission and agent-operation data is not persisted and does not launch agents.
+- Research tasks and processing operations are not persisted and do not launch agents.

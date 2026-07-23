@@ -76,9 +76,9 @@ hermes mcp add indonesia-official \
 
 If BPS is enabled, add `BPS_API_KEY` to Hermes's secret environment rather than Markdown or command history.
 
-## Mission Control dashboard
+## IDX Research Desk dashboard
 
-Run the responsive evidence dashboard on the LAN:
+Run the responsive evidence-first dashboard on the LAN:
 
 ```bash
 .venv/bin/pip install -e '.[dashboard]'
