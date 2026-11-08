@@ -15,12 +15,14 @@ from mcp.types import TextContent, Tool
 from .bps import BPSClient
 from .idx import IDXClient
 from .ksei import KSEIClient
+from .market import MarketClient
 
 
 server = Server("indonesia-financial-data")
 _idx = IDXClient()
 _bps = BPSClient(api_key=os.getenv("BPS_API_KEY", ""))
 _ksei = KSEIClient()
+_market = MarketClient()
 
 
 async def _idx_list_companies(**kwargs: Any) -> dict[str, Any]:
@@ -63,6 +65,42 @@ async def _ksei_investor_demographics(**kwargs: Any) -> dict[str, Any]:
     return await _ksei.investor_demographics(**kwargs)
 
 
+async def _market_quote(**kwargs: Any) -> dict[str, Any]:
+    return await _market.quote(**kwargs)
+
+
+async def _market_history(**kwargs: Any) -> dict[str, Any]:
+    return await _market.history(**kwargs)
+
+
+async def _market_fundamental(**kwargs: Any) -> dict[str, Any]:
+    return await _market.fundamental(**kwargs)
+
+
+async def _market_technical(**kwargs: Any) -> dict[str, Any]:
+    return await _market.technical(**kwargs)
+
+
+async def _market_screen(**kwargs: Any) -> dict[str, Any]:
+    return await _market.screen(**kwargs)
+
+
+async def _market_foreign(**kwargs: Any) -> dict[str, Any]:
+    return await _market.foreign(**kwargs)
+
+
+async def _market_overview(**kwargs: Any) -> dict[str, Any]:
+    return await _market.overview(**kwargs)
+
+
+async def _market_indices(**kwargs: Any) -> dict[str, Any]:
+    return await _market.indices(**kwargs)
+
+
+async def _ownership_holders(**kwargs: Any) -> dict[str, Any]:
+    return await _market.ownership_ticker(**kwargs)
+
+
 async def _source_health(**_: Any) -> dict[str, Any]:
     checks: dict[str, Any] = {}
     for name, operation in {
@@ -88,6 +126,13 @@ async def _source_health(**_: Any) -> dict[str, Any]:
         "official": True,
         "documentation": "https://webapi.bps.go.id/documentation/",
     }
+    checks["fzn_idx_market"] = {
+        "status": "available" if _market.available() else "binary_missing",
+        "official": False,
+        "binary": _market.binary,
+        "upstream": "https://github.com/fzn0x/idx",
+        "install": "npm install -g ihsg-cli",
+    }
     return {"data": checks, "provenance": []}
 
 
@@ -102,6 +147,15 @@ TOOL_HANDLERS: dict[str, Callable[..., Awaitable[dict[str, Any]]]] = {
     "bps_get_data": _bps_get_data,
     "ksei_sid_growth": _ksei_sid_growth,
     "ksei_investor_demographics": _ksei_investor_demographics,
+    "market_quote": _market_quote,
+    "market_history": _market_history,
+    "market_fundamental": _market_fundamental,
+    "market_technical": _market_technical,
+    "market_screen": _market_screen,
+    "market_foreign": _market_foreign,
+    "market_overview": _market_overview,
+    "market_indices": _market_indices,
+    "ownership_holders": _ownership_holders,
     "source_health": _source_health,
 }
 
@@ -246,8 +300,98 @@ TOOLS = [
         ),
     ),
     Tool(
+        name="market_quote",
+        description=(
+            "Delayed price quote for one or more IDX tickers (comma-separated, e.g. 'BBCA,BBRI'). "
+            "NON-OFFICIAL market data via the MIT-licensed fzn0x/idx CLI (Yahoo Finance / MSN Money); "
+            "provenance is labelled official=false. Requires the idx binary (npm install -g ihsg-cli)."
+        ),
+        inputSchema=_object(
+            {"symbols": {"type": "string", "description": "Comma-separated tickers, .JK optional."}},
+            ["symbols"],
+        ),
+    ),
+    Tool(
+        name="market_history",
+        description="Delayed OHLCV history for one ticker via fzn0x/idx (non-official, official=false).",
+        inputSchema=_object(
+            {
+                "symbol": {"type": "string", "pattern": "^[A-Za-z0-9.]{4,10}$"},
+                "period": {"type": "string", "enum": ["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"], "default": "1y"},
+                "interval": {"type": "string", "enum": ["1m", "2m", "5m", "15m", "30m", "1h", "1d", "1wk", "1mo"], "default": "1d"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 500, "default": 30},
+            },
+            ["symbol"],
+        ),
+    ),
+    Tool(
+        name="market_fundamental",
+        description=(
+            "Fundamental ratios (P/E, P/B, PEG, EV/EBITDA, ROE, margins, leverage, dividend) with the "
+            "upstream rule-based verdict, via fzn0x/idx (non-official, official=false). The verdict is "
+            "the upstream tool's rule output, not this project's recommendation."
+        ),
+        inputSchema=_object({"symbol": {"type": "string", "pattern": "^[A-Za-z0-9.]{4,10}$"}}, ["symbol"]),
+    ),
+    Tool(
+        name="market_technical",
+        description="Technical indicators (RSI, MACD, SMA/EMA, Bollinger, ATR) via fzn0x/idx (non-official, official=false).",
+        inputSchema=_object(
+            {
+                "symbol": {"type": "string", "pattern": "^[A-Za-z0-9.]{4,10}$"},
+                "period": {"type": "string", "enum": ["3mo", "6mo", "1y", "2y", "5y"], "default": "1y"},
+            },
+            ["symbol"],
+        ),
+    ),
+    Tool(
+        name="market_screen",
+        description=(
+            "Screen ~950 IDX tickers via fzn0x/idx (non-official, official=false). Use a preset "
+            "(top-performers, high-dividend, low-pe, 52w-high, 52w-low, high-volume, large-cap) or a "
+            "filter expression like 'pe<15,roe>15,sector=financial'."
+        ),
+        inputSchema=_object(
+            {
+                "preset": {"type": "string", "default": ""},
+                "filter_expr": {"type": "string", "default": ""},
+                "sort": {"type": "string", "default": ""},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
+            }
+        ),
+    ),
+    Tool(
+        name="market_foreign",
+        description="Foreign buy/sell per session for a ticker from idx.co.id summaries via fzn0x/idx (non-official wrapper, official=false).",
+        inputSchema=_object(
+            {
+                "symbol": {"type": "string", "pattern": "^[A-Za-z0-9.]{4,10}$"},
+                "days": {"type": "integer", "minimum": 1, "maximum": 120, "default": 20},
+            },
+            ["symbol"],
+        ),
+    ),
+    Tool(
+        name="market_overview",
+        description="IHSG overview: index, breadth, turnover, top gainers/losers via fzn0x/idx (non-official, official=false).",
+        inputSchema=_object({"top": {"type": "integer", "minimum": 1, "maximum": 50, "default": 10}}),
+    ),
+    Tool(
+        name="market_indices",
+        description="All IDX indices (IHSG, LQ45, IDX30, sector/thematic) for the latest session via fzn0x/idx (non-official, official=false).",
+        inputSchema=_object({}),
+    ),
+    Tool(
+        name="ownership_holders",
+        description=(
+            "Holders above 1% of a ticker from KSEI's monthly register, via fzn0x/idx's local ownership "
+            "database (requires a prior `idx ownership sync` on the host; non-official wrapper, official=false)."
+        ),
+        inputSchema=_object({"symbol": {"type": "string", "pattern": "^[A-Za-z0-9.]{4,10}$"}}, ["symbol"]),
+    ),
+    Tool(
         name="source_health",
-        description="Check first-party source availability and BPS credential readiness.",
+        description="Check first-party source availability, BPS credential readiness, and the fzn0x/idx market backend.",
         inputSchema=_object({}),
     ),
 ]

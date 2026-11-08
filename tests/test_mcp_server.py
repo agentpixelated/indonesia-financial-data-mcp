@@ -5,25 +5,48 @@ import pytest
 from indonesia_data_mcp import server
 
 
+OFFICIAL_TOOLS = {
+    "idx_list_companies",
+    "idx_company_profile",
+    "idx_company_announcements",
+    "idx_financial_reports",
+    "idx_filing_facts",
+    "bps_list_subjects",
+    "bps_list_variables",
+    "bps_get_data",
+    "ksei_sid_growth",
+    "ksei_investor_demographics",
+    "source_health",
+}
+
+# Market tools delegate to the MIT-licensed fzn0x/idx CLI (see
+# THIRD_PARTY_NOTICES.md). They are optional, non-official, and every
+# description must say so — that labelling is the contract this test guards.
+MARKET_TOOLS = {
+    "market_quote",
+    "market_history",
+    "market_fundamental",
+    "market_technical",
+    "market_screen",
+    "market_foreign",
+    "market_overview",
+    "market_indices",
+    "ownership_holders",
+}
+
+
 @pytest.mark.asyncio
-async def test_server_lists_first_party_tools_only():
+async def test_server_lists_official_and_labelled_market_tools():
     tools = await server.handle_list_tools()
     names = {tool.name for tool in tools}
 
-    assert names == {
-        "idx_list_companies",
-        "idx_company_profile",
-        "idx_company_announcements",
-        "idx_financial_reports",
-        "idx_filing_facts",
-        "bps_list_subjects",
-        "bps_list_variables",
-        "bps_get_data",
-        "ksei_sid_growth",
-        "ksei_investor_demographics",
-        "source_health",
-    }
-    assert all("Yahoo" not in tool.description for tool in tools)
+    assert names == OFFICIAL_TOOLS | MARKET_TOOLS
+    for tool in tools:
+        if tool.name in MARKET_TOOLS:
+            assert "official=false" in tool.description
+            assert "fzn0x/idx" in tool.description
+        elif tool.name != "source_health":
+            assert "Yahoo" not in tool.description
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,10 @@
 # Indonesia Financial Data MCP
 
-Citation-first MCP server for **official Indonesian financial data**. It does not use Yahoo Finance or yfinance.
+Citation-first MCP server for **official Indonesian financial data**. The official
+tools below do not use Yahoo Finance or yfinance. Optional market-data tools
+(labelled `market_*` / `ownership_holders`) are provided separately through the
+MIT-licensed [fzn0x/idx](https://github.com/fzn0x/idx) CLI and are always
+labelled `official: false` — see "Market data (optional, non-official)".
 
 ## Official sources
 
@@ -47,6 +51,36 @@ Credential values are redacted from provenance URLs.
 
 See [`docs/SOURCES.md`](docs/SOURCES.md) for source contracts and boundaries,
 and [`docs/HERMES.md`](docs/HERMES.md) for Hermes registration and live checks.
+
+## Market data (optional, non-official) — via fzn0x/idx
+
+Official IDX market prices are a licensed product, so the official tools above
+carry none. For delayed prices and screening, this server can delegate to the
+**fzn0x/idx** CLI (`ihsg-cli`, MIT License, Copyright (c) 2026 Midori Research
+and idx contributors — full text in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md)):
+
+```bash
+npm install -g ihsg-cli        # or: cargo install --locked ihsg-cli
+# optional: export IDX_CLI_PATH=/path/to/idx
+```
+
+No upstream code is copied into this repository; the server invokes the `idx`
+binary as a subprocess (`idx -o json ...`) and wraps its output in the same
+provenance envelope, with `official: false` and a note that the data is delayed
+Yahoo Finance / MSN Money aggregation subject to those providers' terms.
+
+Additional tools when the binary is present:
+
+- `market_quote` — delayed quotes for one or more tickers
+- `market_history` — OHLCV candles
+- `market_fundamental` — ratios + upstream rule-based verdict (not a recommendation)
+- `market_technical` — RSI/MACD/MA/Bollinger/ATR
+- `market_screen` — screen ~950 IDX tickers by preset or filter expression
+- `market_foreign` — foreign buy/sell per session (idx.co.id summaries)
+- `market_overview`, `market_indices` — IHSG and all IDX indices
+- `ownership_holders` — KSEI >1% holders (needs a prior `idx ownership sync` on the host)
+
+`source_health` reports the backend as `fzn_idx_market`.
 
 ## Install
 
@@ -119,7 +153,7 @@ issuer profile and taxonomy version.
   `instance.zip` XBRL facts, but canonical cross-company line-item
   normalization remains a separate future layer.
 - OJK's public data portal and Bank Indonesia sources were investigated. Their browser-facing services require additional contract discovery and reliability work, so they are not falsely advertised as production-ready tools in v0.1.
-- Market-price data is not included: official IDX real-time/delayed market data is a licensed data product.
+- Official market-price data is not included: official IDX real-time/delayed market data is a licensed data product. Delayed, non-official prices are available only through the optional fzn0x/idx backend described above, and are labelled `official: false`.
 
 ## License
 
